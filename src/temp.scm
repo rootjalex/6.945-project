@@ -97,3 +97,23 @@
                 (type:procedure ((? a:16)) (? type:19))))
 |#
 ;Unspecified return value
+
+#|
+TODOs:
+Operations file:
+Redefine the interface to register built in operations (+, -, cons, car) for types 
+
+Types file:
+Expand built in types ()
+
+SideEffects file:
+explicitly label built ins with side effects (ex. set, )
+places for side effects (ex. (set-cdr! x 4) should know what x is .. x is list)
+
+To Consider: 
+Figure out how to load both files
+Make sure to document copied code
+Look at parametric code (in type-resolver.scm)
+Read paper by GJS: https://dl.acm.org/doi/10.1145/73560.73564
+
+|#
