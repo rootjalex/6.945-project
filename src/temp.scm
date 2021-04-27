@@ -100,13 +100,13 @@
 
 #|
 TODOs:
-Operations file:
+Operations file: AJ
 Redefine the interface to register built in operations (+, -, cons, car) for types 
 
-Types file:
+Types file: Emily 
 Expand built in types ()
 
-SideEffects file:
+SideEffects file: 
 explicitly label built ins with side effects (ex. set, )
 places for side effects (ex. (set-cdr! x 4) should know what x is .. x is list)
 
