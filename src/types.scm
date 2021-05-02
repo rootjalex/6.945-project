@@ -13,6 +13,18 @@ TODO: define built-in types and associated wrappers here. Expand from what exist
   (lambda (expr env)
     (make-texpr (string-type) expr)))
 
+(define-generic-procedure-handler program-constraints-1
+  (match-args type-expression?
+              (disjoin boolean? number? symbol? string?))
+  (lambda (type expr)
+    '()))
+
+(define-generic-procedure-handler simplify-annotated-program-1
+  (match-args type-expression?
+              (disjoin boolean? number? symbol? string?))
+  (lambda (type expr)
+    expr))
+
 (define pair-type)
 (define pair-type?)
 (receive (constructor predicate)

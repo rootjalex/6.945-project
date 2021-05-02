@@ -221,9 +221,8 @@
 |#
 
 (define string-example
-  '(define prog
-     (lambda (l)
-       (string-length l))))
+  '(define str-ex
+     "em"))
 
 (define em
   (noisy-infer-program-types string-example))
