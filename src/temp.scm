@@ -1,4 +1,5 @@
 ; (load "/Users/alexanderroot/Classes/6.945/sdf/manager/load")
+; (load "~/Documents/2021Spring/6.945/sdf/manager/load")
 ; (manage 'new 'unification)
 
 
@@ -74,7 +75,6 @@
   '(define wrapper
      (lambda (a)
        (car a))))
-
 
 (define bar
   (noisy-infer-program-types car-wrapper))
@@ -188,13 +188,39 @@
 (= (? type:96) (? type:95))
 (= (type:procedure ((type:pair (? car:94) (? cdr:93))) (? cdr:93)) (type:procedure ((? l:92)) (? type:95)))
 ;Value: em
-
+|#
 
 (pp (simplify-annotated-program em))
+#|
 (begin (define prog (lambda (l) (declare-type l (type:pair (? car:94) (? type:96))) (cdr l)))
        (declare-type prog (type:procedure ((type:pair (? car:94) (? type:96))) (? type:96))))
 
 |#
+(define car-example
+  '(define prog
+     (lambda (l)
+       (car l))))
+;Value: car-example
+
+(define em
+  (noisy-infer-program-types car-example))
+#|
+(begin (define prog (lambda (l) (declare-type l (? l:7)) (car l)))
+       (declare-type prog (type:procedure ((? l:7)) (? type:11))))
+(= (? prog:6) (type:procedure ((? l:7)) (? type:11)))
+(= (? type:11) (? type:10))
+(= (type:procedure ((type:pair (? car:9) (? cdr:8))) (? car:9))
+   (type:procedure ((? l:7)) (? type:10)))
+;Value: em
+|#
+(pp (simplify-annotated-program em))
+#|
+(begin (define prog (lambda (l) (declare-type l (type:pair (? type:11) (? cdr:8))) (car l)))
+       (declare-type prog (type:procedure ((type:pair (? type:11) (? cdr:8))) (? type:11))))
+;Unspecified return value
+|#
+
+
 
 (define cdr-example
   '(define prog
