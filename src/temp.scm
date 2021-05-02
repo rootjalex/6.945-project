@@ -222,13 +222,35 @@
 
 
 
-(define cdr-example
+(define cdr-write-example
   '(define prog
      (lambda (l)
        (begin
          (write-line l)
          (cdr l)))))
-         
+(define em
+  (noisy-infer-program-types cdr-write-example))
+#|
+(begin (define prog (lambda (l) (declare-type l (? l:113)) (write-line l) (cdr l)))
+       (declare-type prog (type:procedure ((? l:113)) (? type:120))))
+(= (? prog:112) (type:procedure ((? l:113)) (? type:120)))
+(= (? type:120) (? type:119))
+(= (? type:119) (? type:118))
+(= (? write-line:114) (type:procedure ((? l:113)) (? type:115)))
+(= (type:procedure ((type:pair (? car:117) (? cdr:116))) (? cdr:116))
+   (type:procedure ((? l:113)) (? type:118)))
+|#
+(pp (simplify-annotated-program em))
+#|
+(begin
+ (define prog
+   (lambda (l)
+     (declare-type l (type:pair (? car:117) (? type:120)))
+     (write-line l)
+     (cdr l)))
+ (declare-type prog (type:procedure ((type:pair (? car:117) (? type:120))) (? type:120))))
+;Unspecified return value
+|#
 
 #|
 TODOs:
