@@ -21,3 +21,9 @@ Some useful helper functions that we've needed.
   (guarantee procedure? t)
   (t))
 
+; unclear where these should go.
+(define (make-pure-texpr type expr)
+  `(t ,type ,expr ,(effect:pure)))
+
+(define (make-effectful-texpr type expr effect)
+  `(t ,type ,expr ,effect))

@@ -1,7 +1,7 @@
 ; (load "/Users/alexanderroot/Classes/6.945/sdf/manager/load")
 ; (load "~/Documents/2021Spring/6.945/sdf/manager/load")
 ; (manage 'new 'unification)
-
+; TODO: implement load-spec in files.scm (manage 'new 'type-inference)
 
 (define fact-iterative
   '(define fact
