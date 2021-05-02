@@ -196,6 +196,13 @@
 
 |#
 
+(define cdr-example
+  '(define prog
+     (lambda (l)
+       (begin
+         (write-line l)
+         (cdr l)))))
+         
 
 #|
 TODOs:
