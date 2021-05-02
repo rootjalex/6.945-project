@@ -220,14 +220,13 @@
 ;Unspecified return value
 |#
 
-
-
 (define cdr-write-example
   '(define prog
      (lambda (l)
        (begin
          (write-line l)
          (cdr l)))))
+
 (define em
   (noisy-infer-program-types cdr-write-example))
 #|
@@ -251,6 +250,11 @@
  (declare-type prog (type:procedure ((type:pair (? car:117) (? type:120))) (? type:120))))
 ;Unspecified return value
 |#
+
+
+(define string-example
+  '(define str-ex
+     "em"))
 
 #|
 TODOs:
