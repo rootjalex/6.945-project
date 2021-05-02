@@ -9,6 +9,14 @@ TODO: define built-in types and associated wrappers here. Expand from what exist
   (set! pair-type constructor)
   (set! pair-type? predicate))
 
+(define vector-type)
+(define vector-type?)
+(receive (constructor predicate)
+    (define-parametric-type-operator 'type:vector)
+  (set! vector-type constructor)
+  (set! vector-type? predicate))
+
+
 
 (define (get-from-env name env)
   (cdr (let loop ((env env))
@@ -34,6 +42,16 @@ TODO: define built-in types and associated wrappers here. Expand from what exist
         (cdr-type (type-variable 'cdr)))
     (procedure-type (list (pair-type car-type cdr-type)) cdr-type)))
 
+(define (evaluate-car)
+  (let ((car-type (type-variable 'car))
+        (cdr-type (type-variable 'cdr)))
+    (procedure-type (list (pair-type car-type cdr-type)) car-type)))
+
+(define (evaluate-vector-ref)
+  (let ((vector-element (type-variable 'element))
+        (cdr-type (type-variable 'cdr)))
+    (procedure-type (list (pair-type car-type cdr-type)) car-type)))
+
 (define (make-top-level-env-frame)
   (let ((binary-numerical
          (let ((v (numeric-type)))
@@ -50,4 +68,5 @@ TODO: define built-in types and associated wrappers here. Expand from what exist
           (cons '> binary-comparator)
           (cons '<= binary-comparator)
           (cons '>= binary-comparator)
+          (cons 'car evaluate-car)
           (cons 'cdr evaluate-cdr))))
