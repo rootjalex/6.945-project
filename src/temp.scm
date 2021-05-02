@@ -1,7 +1,7 @@
 ; (load "/Users/alexanderroot/Classes/6.945/sdf/manager/load")
 ; (load "~/Documents/2021Spring/6.945/sdf/manager/load")
 ; (manage 'new 'unification)
-
+; TODO: implement load-spec in files.scm (manage 'new 'type-inference)
 
 (define fact-iterative
   '(define fact
@@ -220,15 +220,20 @@
 ;Unspecified return value
 |#
 
-
-
-(define cdr-example
+(define string-example
   '(define prog
      (lambda (l)
-       (begin
-         (write-line l)
-         (cdr l)))))
+       (string-length l))))
+
+(define em
+  (noisy-infer-program-types string-example))
          
+(pp (simplify-annotated-program em))
+#|
+(begin (define prog (lambda (l) (declare-type l (? l:2)) (string-length l)))
+       (declare-type prog (type:procedure ((? l:2)) (? type:5))))
+;Unspecified return value
+|#
 
 #|
 TODOs:
