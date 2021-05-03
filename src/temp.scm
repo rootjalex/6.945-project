@@ -256,6 +256,105 @@
   '(define str-ex
      "em"))
 
+
+(define id-example
+  '(begin
+     (define id
+       (lambda (x) x))
+     (id 2)))
+
+(define id-infer
+  (noisy-infer-program-types id-example))
+#|
+(begin (define id (lambda (x) (declare-type x (? x:15)) x))
+       (declare-type id (type:procedure ((? x:15)) (? type:16)))
+       (id 2))
+(= (? type:18) (? type:17))
+
+(= (? id:14) (type:procedure ((? x:15)) (? type:16)))
+
+(= (? type:16) (? x:15))
+
+(= (? id:14) (type:procedure ((numeric-type)) (? type:17)))
+
+;Value: id-infer
+|#
+
+(define id-example1
+  '(define id
+     (lambda (x) x)))
+
+
+
+(define id-infer1
+  (noisy-infer-program-types id-example1))
+#|
+(begin (define id (lambda (x) (declare-type x (? x:20)) x))
+       (declare-type id (type:procedure ((? x:20)) (? type:21))))
+(= (? id:19) (type:procedure ((? x:20)) (? type:21)))
+
+(= (? type:21) (? x:20))
+
+;Value: id-infer1
+|#
+
+
+
+
+
+#|
+Parametrics example
+TODO: USE THIS FOR DRAFT AND PRESENTATION
+
+(manage 'new 'unification)
+
+(define id-example
+  '(begin
+     (define id
+       (lambda (x) x))
+     (define aj
+       (id 2))
+     (define em
+       (id #t))))
+;Value: id-example
+
+(define id-infer
+  (infer-program-types id-example))
+;Value: id-infer
+
+id-infer
+;Value: ***type-error***
+
+(load "parametrics")
+;Loading "parametrics.scm"... done
+;Value: infer-program-types
+
+(define id-infer
+  (infer-program-types id-example))
+;Value: id-infer
+
+id-infer
+;Value: (t (boolean-type) (begin (t (type:procedure ((? type:29)) (? type:29)) (define id (t (type:procedure ((? type:29)) (? type:\
+29)) (lambda (x) (t (? type:29) x))))) (t (numeric-type) (define aj (t (numeric-type) ((t (type:procedure ((? type:29)) (? type:29)\
+) id) (t (numeric-type) 2))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:procedure ((? type:29)) (? type:29)) id) (t\
+ (boolean-type) #t)))))))
+
+(pp (simplify-annotated-program id-infer))
+(begin (define id (lambda (x) (declare-type x (? type:29)) x))
+       (declare-type id (type:procedure ((? type:29)) (? type:29)))
+       (define aj (id 2))
+       (declare-type aj (numeric-type))
+       (define em (id #t))
+       (declare-type em (boolean-type)))
+;Unspecified return value
+
+|#
+
+
+
+
+
+
 #|
 TODOs:
 Operations file: AJ

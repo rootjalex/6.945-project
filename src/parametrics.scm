@@ -223,6 +223,14 @@ where DUPLICATE B B' is:
               ((match:dict-substitution dict) texpr)
               '***type-error***))))))
 
+(define (infer-program-types expr)
+  (let* ((texpr (annotate-program expr))
+         (constraints (program-constraints texpr))
+         (fixed-constraints (handle-parametric-constraints constraints))
+         (dict (unify-constraints fixed-constraints)))
+    (if dict
+        ((match:dict-substitution dict) texpr)
+        '***type-error***)))
 
 #|
 (define id-example
@@ -278,7 +286,7 @@ id-infer
      (define em
        (id #t))))
 
-define id-infer
+(define id-infer
   (noisy-infer-program-types id-example))
 (begin (define id (lambda (x) (declare-type x (? x:61)) x))
        (declare-type id (type:procedure ((? x:61)) (? type:62)))
@@ -315,5 +323,3 @@ define id-infer
        (declare-type em (boolean-type)))
 ;Unspecified return value
 |#
-
-
