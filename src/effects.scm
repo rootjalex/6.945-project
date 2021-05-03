@@ -33,7 +33,6 @@ For testing, run:
   (values constructor predicate))
 
 
-
 ; TODO: what makes the args satisfiable for effects? is this even useful?
 (define (args-sat:n-types n)
   (define (n-types args)
@@ -92,6 +91,23 @@ For testing, run:
 bf81c].
 |#
 
+; Parameter is the type of allocation
+(define effect:allocate)
+(define effect:allocate?)
+(receive (constructor predicate) (primitive-effect 'effect:allocate (args-sat:n-types 1))
+  (set! effect:allocate constructor)
+  (set! effect:allocate? predicate))
 
+; Instead of wrongfully labelling effect:pure as the default, effect:unknown should be the default.
+(define effect:unknown)
+(define effect:unknown?)
+(receive (constructor predicate) (primitive-effect 'effect:unknown null?)
+  (set! effect:unknown constructor)
+  (set! effect:unknown? predicate))
+
+(define (make-default-effect . args)
+  (declare (ignore args))
+  ; TODO: are args important for unknown? I think it would just be var name.
+  (effect:unknown))
 
 
