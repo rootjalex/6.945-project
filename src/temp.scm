@@ -422,7 +422,62 @@ cdr-infer
 ;To continue, call RESTART with an option number:
 |#
 
+(define id-example
+  '(begin
+    (define id
+      (lambda (x y) x))
+    (define aj
+      (id 2 3))
+    (define em
+      (id #t #f))))
 
+(define id-infer
+  (noisy-infer-program-types id-example))
+#|
+(begin (define id (lambda (x y) (declare-type x (? x:200)) (declare-type y (? y:201)) x))
+       (declare-type id (type:procedure ((? x:200) (? y:201)) (? type:202)))
+       (define aj (id 2 3))
+       (declare-type aj (? type:204))
+       (define em (id #t #f))
+       (declare-type em (? type:206)))
+(= (? type:207) (? em:205))
+
+(= (? id:199) (type:procedure ((? x:200) (? y:201)) (? type:202)))
+
+(= (? type:202) (? x:200))
+
+(= (? aj:203) (? type:204))
+
+(parametric-constraint (? id:199) (? type:209))
+
+(= (? type:209) (type:procedure ((numeric-type) (numeric-type)) (? type:204)))
+
+(= (? em:205) (? type:206))
+
+(parametric-constraint (? id:199) (? type:208))
+
+(= (? type:208) (type:procedure ((boolean-type) (boolean-type)) (? type:206)))
+
+;Value: id-infer
+
+id-infer
+;Value: (t (boolean-type) (begin (t (type:procedure ((? type:202) (? y:201)) (? type:202)) (define id (t (type:\
+procedure ((? type:202) (? y:201)) (? type:202)) (lambda (x y) (t (? type:202) x))))) (t (numeric-type) (define\
+ aj (t (numeric-type) ((t (type:procedure ((? type:202) (? y:201)) (? type:202)) id) (t (numeric-type) 2) (t (n\
+umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:procedure ((? type:202) (? y:201))\
+ (? type:202)) id) (t (boolean-type) #t) (t (boolean-type) #f)))))))
+
+
+
+(pp (simplify-annotated-program id-infer))
+(begin (define id (lambda (x y) (declare-type x (? type:202)) (declare-type y (? y:201)) x))
+       (declare-type id (type:procedure ((? type:202) (? y:201)) (? type:202)))
+       (define aj (id 2 3))
+       (declare-type aj (numeric-type))
+       (define em (id #t #f))
+       (declare-type em (boolean-type)))
+;Unspecified return value
+|#
 
 
 
