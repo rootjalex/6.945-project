@@ -115,7 +115,7 @@ where DUPLICATE B B' is:
     (if (null? consts)
         acc
         (loop (cdr consts)
-              (append acc (gather-single-types (car constraints))))))
+              (lset-union equal? acc (gather-single-types (car consts))))))
   (loop constraints '()))
 
 (define (construct-single-duplicate original replacement parametrics constraints)
@@ -165,7 +165,6 @@ where DUPLICATE B B' is:
   (constrain '(? t:2) (procedure-type (list '(? t:3)) '(? t:6)))))
 ;Value: ((= (? t:3) (? t:5)) (= (? t:3) (? t:4)) (= (? t:2) (type:procedure ((? t:3)) (? t:6))) (= (? type:1) (? t:2)))
 |#
-
 
 (define (substitute-constraints constraints originals replacements)
   (let ((alist (map cons originals replacements)))
