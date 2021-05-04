@@ -351,6 +351,77 @@ id-infer
 |#
 
 
+#|
+(define cdr-example
+  '(begin
+     (define foo
+       (lambda (x)
+         (cdr x)))
+     (foo (cons 1 2))
+     (foo (cons #t #f))))
+;Value: cdr-example
+
+(define cdr-infer
+  (noisy-infer-program-types cdr-example))
+(begin (define foo (lambda (x) (declare-type x (? x:14)) (cdr x))) (declare-type foo (type:procedure ((? x:14)) (? type:18))) (foo (cons 1 2)) (foo (cons #t #f)))
+(= (? type:24) (? type:23))
+
+(= (? foo:13) (type:procedure ((? x:14)) (? type:18)))
+
+(= (? type:18) (? type:17))
+
+(= (type:procedure ((type:pair (? car:16) (? cdr:15))) (? cdr:15)) (type:procedure ((? x:14)) (? type:17)))
+
+(= (? foo:13) (type:procedure ((? type:20)) (? type:21)))
+
+(= (? cons:19) (type:procedure ((numeric-type) (numeric-type)) (? type:20)))
+
+(= (? foo:13) (type:procedure ((? type:22)) (? type:23)))
+
+(= (? cons:19) (type:procedure ((boolean-type) (boolean-type)) (? type:22)))
+
+;Value: cdr-infer
+
+cdr-infer
+;Value: ***type-error***
+
+(load "parametrics")
+;Loading "parametrics.scm"... done
+;Value: infer-program-types
+
+(define cdr-infer
+  (noisy-infer-program-types cdr-example))
+(begin (define foo (lambda (x) (declare-type x (? x:26)) (cdr x))) (declare-type foo (type:procedure ((? x:26)) (? type:30))) (foo (cons 1 2)) (foo (cons #t #f)))
+(= (? type:36) (? type:35))
+
+(= (? foo:25) (type:procedure ((? x:26)) (? type:30)))
+
+(= (? type:30) (? type:29))
+
+(parametric-constraint (type:procedure ((type:pair (? car:28) (? cdr:27))) (? cdr:27)) (? type:41))
+
+(= (? type:41) (type:procedure ((? x:26)) (? type:29)))
+
+(parametric-constraint (? foo:25) (? type:39))
+
+(= (? type:39) (type:procedure ((? type:32)) (? type:33)))
+
+(parametric-constraint (? cons:31) (? type:40))
+
+(= (? type:40) (type:procedure ((numeric-type) (numeric-type)) (? type:32)))
+
+(parametric-constraint (? foo:25) (? type:37))
+
+(= (? type:37) (type:procedure ((? type:34)) (? type:35)))
+
+(parametric-constraint (? cons:31) (? type:38))
+
+(= (? type:38) (type:procedure ((boolean-type) (boolean-type)) (? type:34)))
+
+;All type variables should have a mapping (? type:30) ((... ? type:39) (... ? type:42) (... ? type:43) (... ? type:44) (... ? type:45) ...)
+;To continue, call RESTART with an option number:
+|#
+
 
 
 
