@@ -204,12 +204,17 @@ where DUPLICATE B B' is:
   (lambda (type expr)
     (let ((replacement (type-variable))
           (original (texpr-type (combination-operator expr)))
-          (args (map texpr-type (combination-operands expr))))
-      (cons (make-parametric-constraint original replacement)
-            (cons (constrain replacement (procedure-type args type))
-                  ; TODO: FIGURE OUT WHAT THIS IS DOING
-                  (append (program-constraints (combination-operator expr))
-                          (append-map program-constraints (combination-operands expr))))))))
+          (args (map texpr-type (combination-operands expr)))
+          (p-constraints (append (program-constraints (combination-operator expr))
+                                 (append-map program-constraints (combination-operands expr)))))
+      (if (type-variable? original)
+          ; parametric
+          (cons (make-parametric-constraint original replacement)
+                (cons (constrain replacement (procedure-type args type))
+                      p-constraints))
+          ; otherwise do original behavior (possibly assert that this is a parametric type?)
+          (cons (constrain original (procedure-type args type))
+                p-constraints)))))
 
 (define (noisy-infer-program-types expr)
   (let ((texpr (annotate-program expr)))

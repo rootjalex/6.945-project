@@ -480,6 +480,29 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 |#
 
 
+(define cdr-example
+  '(define prog
+     (lambda (l)
+       (cdr l))))
+;Value: cdr-example
+
+(define em
+  (noisy-infer-program-types cdr-example))
+#|
+(begin (define prog (lambda (l) (declare-type l (? l:18)) (cdr l))) (declare-type prog (type:procedure ((? l:18)) (? type:22))))
+(= (? prog:17) (type:procedure ((? l:18)) (? type:22)))
+
+(= (? type:22) (? type:21))
+
+(= (type:procedure ((type:pair (? car:20) (? cdr:19))) (? cdr:19)) (type:procedure ((? l:18)) (? type:21)))
+
+;Value: em
+
+(pp (simplify-annotated-program em))
+(begin (define prog (lambda (l) (declare-type l (type:pair (? car:20) (? type:22))) (cdr l)))
+       (declare-type prog (type:procedure ((type:pair (? car:20) (? type:22))) (? type:22))))
+;Unspecified return value
+|#
 
 #|
 TODOs:
