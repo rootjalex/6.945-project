@@ -123,6 +123,7 @@ bf81c].
 
 ; TODO: effect:disjoint
 
-
 (define (effect:union* effects)
   (reduce effect:union (effect:pure) effects))
+
+; TODO: TEST THESE
