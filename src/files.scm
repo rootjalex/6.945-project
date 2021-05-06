@@ -5,6 +5,6 @@
 ;   "helpers")
 
 (load "types")
-(load "operations")
 (load "effects")
+(load "operations")
 (load "helpers")

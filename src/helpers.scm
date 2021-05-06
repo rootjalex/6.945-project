@@ -46,5 +46,5 @@ Some useful helper functions that we've needed.
 (define (etexpr-expr expr)
   (caddr expr))
 
-(define (etexpr-effect expr)
+(define (etexpr-effects expr)
   (cadddr expr))

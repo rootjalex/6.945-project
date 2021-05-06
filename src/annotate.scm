@@ -4,7 +4,7 @@ Different from the original in that side-effects are also annotated.
 |#
 
 (define (et-annotate-program expr)
-  (et-annotate-expr expr (top-level-env)))
+  (et-annotate-expr expr (top-level-env) (top-level-env-effects)))
 
 ; The third argument is the side-effects environment.
 (define et-annotate-expr
@@ -30,7 +30,7 @@ Different from the original in that side-effects are also annotated.
     (make-effectful-etexpr
      (get-var-type expr env)
      expr
-     (get-effect-type expr senv))))
+     (get-var-effect expr senv))))
 
 (define-generic-procedure-handler et-annotate-expr
   (match-args string? any-object?)
@@ -49,9 +49,9 @@ Different from the original in that side-effects are also annotated.
     (let ((predicate (et-annotate-expr (if-predicate expr) env senv))
           (consequent (et-annotate-expr (if-consequent expr) env senv))
           (alternative (et-annotate-expr (if-alternative expr) env senv)))
-      (let ((pred-effect (etexpr-effect predicate))
-            (cons-effect (etexpr-effect consequent))
-            (alt-effect (etexpr-effect alternative)))
+      (let ((pred-effect (etexpr-effects predicate))
+            (cons-effect (etexpr-effects consequent))
+            (alt-effect (etexpr-effects alternative)))
         (make-effectful-etexpr
          (type-variable)
          (make-if-expr predicate consequent alternative)
@@ -65,7 +65,7 @@ Different from the original in that side-effects are also annotated.
             (annotated-body (et-annotate-expr (lambda-body expr) env* senv)))
         (let ((proc-type (procedure-type arg-types (type-variable)))
               (proc-expr (make-lambda-expr (lambda-bvl expr) annotated-body))
-              (proc-effect (etexpr-effect annotated-body)))
+              (proc-effect (etexpr-effects annotated-body)))
           ; TODO: Does this repeat effects....?
           (make-effectful-etexpr proc-type proc-expr proc-effect))))))
 
@@ -73,7 +73,13 @@ Different from the original in that side-effects are also annotated.
 (define-generic-procedure-handler et-annotate-expr
   (match-args combination-expr? any-object? any-object?)
   (lambda (expr env senv)
-    (error "AJ didn't understand what combinations are used for, so this isn't implemented yet" expr)))
+    (let* ((operator-name (combination-operator expr))
+           (effect (get-var-effect operator-name senv))
+           (type (type-variable))
+           (et-operands (map (lambda (operand) (et-annotate-expr operand env senv)) (combination-operands expr)))
+           (effects (effect:union* (cons effect (map etexpr-effects et-operands))))
+           (comb-expr (make-combination-expr (et-annotate-expr operator-name) et-operands)))
+      (make-effectful-etexpr type comb-expr effects))))
 
 (define-generic-procedure-handler et-annotate-expr
   (match-args define-expr? any-object? any-object?)
@@ -91,12 +97,9 @@ Different from the original in that side-effects are also annotated.
     (let* ((type (type-variable))
            ; TODO: does senv change at all here....?
            (parts (map (lambda (subexpr) (et-annotate-expr subexpr env senv)) (begin-exprs expr)))
-           (effects (reduce effect:union (effect:pure) (map etexpr-effect parts)))
-           (expr (make-begin-expr parts)))
-      (make-effectful-etexpr type expr effects))))
-
-
-
+           (effects (reduce effect:union (effect:pure) (map etexpr-effects parts)))
+           (lambda-expr (make-begin-expr parts)))
+      (make-effectful-etexpr type lambda-expr effects))))
 
 
 

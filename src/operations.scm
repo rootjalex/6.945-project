@@ -41,3 +41,37 @@ TODO: define built-in operations and associated wrappers here. Expand from what 
 (register-primitive-op! 'car evaluate-car)
 
 
+(define top-level-effects-frame '())
+
+(define (make-top-level-effects-frame)
+  top-level-effects-frame)
+
+(define (top-level-env-effects)
+  (list (make-top-level-effects-frame)))
+
+(define (register-primitive-effect! op-name effect-ctor processing)
+  (set! top-level-effects-frame (cons (list op-name effect-ctor processing) top-level-effects-frame)))
+
+; Used to not include arg types in pure effects
+(define (disclude-args . args)
+  (declare (ignore args))
+  '())
+
+; processing technique for most non-pure effects
+(define (no-op . args)
+  args)
+
+(define (register-pure-primitive! name)
+  (register-primitive-effect! name effect:pure disclude-args))
+
+(register-pure-primitive! '+)
+(register-pure-primitive! '-)
+(register-pure-primitive! '*)
+(register-pure-primitive! '/)
+(register-pure-primitive! '=)
+(register-pure-primitive! '>)
+(register-pure-primitive! '<)
+(register-pure-primitive! '<=)
+(register-pure-primitive! '>=)
+(register-pure-primitive! 'car)
+(register-pure-primitive! 'cdr)
