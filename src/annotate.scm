@@ -22,7 +22,7 @@ Different from the original in that side-effects are also annotated.
   (lambda (expr env senv)
     (declare (ignore env))
     (declare (ignore senv))
-    (make-pure-etexpr (number-type) expr)))
+    (make-pure-etexpr (numeric-type) expr)))
 
 (define-generic-procedure-handler et-annotate-expr
   (match-args symbol? any-object? any-object?)
