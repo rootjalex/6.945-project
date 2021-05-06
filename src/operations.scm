@@ -61,8 +61,12 @@ TODO: define built-in operations and associated wrappers here. Expand from what 
 (define (no-op . args)
   args)
 
+
+(define (effect:simple-pure)
+  (list (effect:pure)))
+
 (define (register-pure-primitive! name)
-  (register-primitive-effect! name effect:pure disclude-args))
+  (register-primitive-effect! name effect:simple-pure disclude-args))
 
 (register-pure-primitive! '+)
 (register-pure-primitive! '-)
@@ -75,3 +79,12 @@ TODO: define built-in operations and associated wrappers here. Expand from what 
 (register-pure-primitive! '>=)
 (register-pure-primitive! 'car)
 (register-pure-primitive! 'cdr)
+
+(define (effect:get-processing effect)
+  (cadr effect))
+
+(define (effect:get-ctor effect)
+  (car effect))
+
+; TODO: does this even work???
+(register-primitive-effect! 'write-line (lambda (type) (list (effect:write type))) no-op)

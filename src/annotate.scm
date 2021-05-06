@@ -27,10 +27,12 @@ Different from the original in that side-effects are also annotated.
 (define-generic-procedure-handler et-annotate-expr
   (match-args symbol? any-object? any-object?)
   (lambda (expr env senv)
-    (make-effectful-etexpr
-     (get-var-type expr env)
-     expr
-     (get-var-effect expr senv))))
+    (let* ((type (get-var-type expr env))
+           (effect (get-var-effect expr senv))
+           (ctor (effect:get-ctor effect))
+           (processing (effect:get-processing effect))
+           (final-effects (apply ctor (processing (list type)))))
+      (make-effectful-etexpr type expr final-effects))))
 
 (define-generic-procedure-handler et-annotate-expr
   (match-args string? any-object?)
@@ -69,7 +71,6 @@ Different from the original in that side-effects are also annotated.
           ; TODO: Does this repeat effects....?
           (make-effectful-etexpr proc-type proc-expr proc-effect))))))
 
-
 (define-generic-procedure-handler et-annotate-expr
   (match-args combination-expr? any-object? any-object?)
   (lambda (expr env senv)
@@ -77,8 +78,10 @@ Different from the original in that side-effects are also annotated.
            (effect (get-var-effect operator-name senv))
            (type (type-variable))
            (et-operands (map (lambda (operand) (et-annotate-expr operand env senv)) (combination-operands expr)))
-           (effects (effect:union* (cons effect (map etexpr-effects et-operands))))
-           (comb-expr (make-combination-expr (et-annotate-expr operator-name env senv) et-operands)))
+           (comb-expr (make-combination-expr (et-annotate-expr operator-name env senv) et-operands))
+           (operand-types (map etexpr-type et-operands))
+           (final-effects (apply (effect:get-ctor effect) ((effect:get-processing effect) operand-types)))
+           (effects (effect:union* (cons final-effects (map etexpr-effects et-operands)))))
       (make-effectful-etexpr type comb-expr effects))))
 
 (define-generic-procedure-handler et-annotate-expr
