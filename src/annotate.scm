@@ -78,7 +78,7 @@ Different from the original in that side-effects are also annotated.
            (type (type-variable))
            (et-operands (map (lambda (operand) (et-annotate-expr operand env senv)) (combination-operands expr)))
            (effects (effect:union* (cons effect (map etexpr-effects et-operands))))
-           (comb-expr (make-combination-expr (et-annotate-expr operator-name) et-operands)))
+           (comb-expr (make-combination-expr (et-annotate-expr operator-name env senv) et-operands)))
       (make-effectful-etexpr type comb-expr effects))))
 
 (define-generic-procedure-handler et-annotate-expr
@@ -97,7 +97,7 @@ Different from the original in that side-effects are also annotated.
     (let* ((type (type-variable))
            ; TODO: does senv change at all here....?
            (parts (map (lambda (subexpr) (et-annotate-expr subexpr env senv)) (begin-exprs expr)))
-           (effects (reduce effect:union (effect:pure) (map etexpr-effects parts)))
+           (effects (effect:union* (map etexpr-effects parts)))
            (lambda-expr (make-begin-expr parts)))
       (make-effectful-etexpr type lambda-expr effects))))
 

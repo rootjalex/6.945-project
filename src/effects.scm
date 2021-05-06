@@ -111,3 +111,18 @@ bf81c].
   (effect:unknown))
 
 
+(define (strip-pure effects)
+  (delete! (effect:pure) effects))
+
+; helper functions for merging effects
+(define (effect:union e1 e2)
+  (let ((together (lset-union equal? e1 e2)))
+    (if (n:> 1 (length together))
+        (strip-pure together)
+        together)))
+
+; TODO: effect:disjoint
+
+
+(define (effect:union* effects)
+  (reduce effect:union (effect:pure) effects))
