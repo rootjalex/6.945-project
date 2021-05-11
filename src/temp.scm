@@ -517,6 +517,60 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 
      (foo z 4)))
 
+(define de-texpr (annotate-program de-texpr))
+
+(define ef-expr (effect-annotate-program de-texpr))
+#|
+(pp ef-expr)
+(effectful
+ (? type:14)
+ (begin
+  (effectful
+   (? foo:1)
+   (define foo
+     (effectful
+      (type:procedure ((? x:2) (? y:3)) (? type:9))
+      (lambda (x y)
+        (effectful
+         (? type:8)
+         (begin
+          (effectful
+           (? type:5)
+           ((effectful (? set-cdr!:4) set-cdr! ()) (effectful (? x:2) x ()) (effectful (numeric-type) 4 ()))
+           ((effect:write (cdr-of x) (numeric-type))))
+          (effectful (? type:7)
+                     ((effectful (? write-line:6) write-line ()) (effectful (? y:3) y ()))
+                     ((effect:io (? y:3)))))
+         ((effect:write (cdr-of x) (numeric-type)) (effect:io (? y:3)))))
+      ((effect:write (cdr-of x) (numeric-type)) (effect:io (? y:3)))))
+   ((effect:allocate (type:procedure ((? x:2) (? y:3)) (? type:9)))))
+  (effectful
+   (? z:10)
+   (define z
+     (effectful
+      (? type:12)
+      ((effectful (? list:11) list ()) (effectful (numeric-type) 1 ())
+                                       (effectful (numeric-type) 2 ())
+                                       (effectful (numeric-type) 3 ()))
+      ((effect:unknown))))
+   ((effect:unknown) (effect:allocate (? type:12))))
+  (effectful (? type:13)
+             ((effectful (? foo:1) foo ()) (effectful (? z:10) z ()) (effectful (numeric-type) 4 ()))
+             ((effect:write (cdr-of z) (numeric-type)) (effect:io ((numeric-type))))))
+ ((effect:allocate (? type:12)) (effect:unknown)
+                                (effect:allocate (type:procedure ((? x:2) (? y:3)) (? type:9)))
+                                (effect:write (cdr-of z) (numeric-type))
+                                (effect:io ((numeric-type)))))
+;Unspecified return value
+
+
+
+
+
+
+
+
+|#
 
 
 
