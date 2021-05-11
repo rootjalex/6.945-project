@@ -45,6 +45,7 @@
 (define (make-set-cdr!-handler)
   (lambda targs
     (if (n:= 2 (length targs))
+        ; effect:write (location) (type-written)
         (list (effect:write (list 'cdr-of (texpr-expr (car targs))) (texpr-type (cadr targs))))
         (error "set-cdr! used without only two arguments" targs))))
 (register-primitive-effect! 'set-cdr! (make-set-cdr!-handler))
@@ -52,6 +53,7 @@
 (define (effect-annotate-partial texpr env)
   (effect-annotate-expr (texpr-type texpr) (texpr-expr texpr) env))
 
+; this is the top-level thing we call
 (define (effect-annotate-program texpr)
   (effect-annotate-partial texpr (top-level-env-effects)))
 
@@ -61,17 +63,32 @@
 (define (make-effectful type expr effects)
   (list 'effectful type expr effects))
 
+(define (effectful? eff)
+  (and (list? eff)
+       (n:= 4 (length eff))
+       (eqv? 'effectful (car eff))))
+
 (define-generic-procedure-handler effect-annotate-expr
   (match-args type-expression? (disjoin boolean? number? symbol?) any-object?)
   (lambda (type expr env)
     (declare (ignore env))
+    ; this is not exactly true for symbol, but the combination-expr has a special handler for that.
     (make-effectful type expr '())))
 
 (define (effectful:get-effects effectful)
   (cadddr effectful))
 
+(define (effectful:get-type effectful)
+  (cadr effectful))
+
+(define (effectful:get-expr effectful)
+  (caddr effectful))
+
 (define (effects:union e0 e1)
   (lset-union equal? e0 e1))
+
+(define (effects:union* . args)
+  (reduce effects:union '() args))
 
 (define-generic-procedure-handler effect-annotate-expr
   (match-args type-expression? if-expr? any-object?)
@@ -82,7 +99,7 @@
       (let* ((pred-effect (effectful:get-effects annotated-pred))
              (cons-effect (effectful:get-effects annotated-pred))
              (altn-effect (effectful:get-effects annotatedd-altn))
-             (effects (effects:union (effects:union cons-effect altn-effect) pred-effect)))
+             (effects (effects:union* cons-effect altn-effect pred-effect)))
         (make-effectful type (make-if-expr annotated-pred annotated-cons annotated-altn) effects)))))
 
 (define (make-default-effect-cell name)
@@ -125,7 +142,8 @@
            (eval-op (effect-annotate-partial operator env))
            (effects-ctor (if (symbol? (texpr-expr operator))
                              (get-var-effect (texpr-expr operator) env)
-                             (effectful:get-effects eval-op)))
+                             ; TODO: this doesn't work for non-symbols I think? that's bad.
+                             (error "We don't support non-symbol operators for combination expressions yet")))
            (operands (map (lambda (op) (effect-annotate-partial op env)) (combination-operands expr))))
       ; TODO: well uhhh what exactly should this do?
       (make-effectful type (make-combination-expr eval-op operands) (apply effects-ctor (combination-operands expr))))))
@@ -175,19 +193,15 @@
     ; TODO: is there a way to force the map to be sequential..?
     (let* ((body (gather (lambda (texpr) (effect-annotate-partial texpr env)) (begin-exprs expr)))
            (new-expr (make-begin-expr body))
-           (effects (reduce effects:union '() (map effectful:get-effects body))))
+           (effects (apply effects:union* (map effectful:get-effects body))))
       (make-effectful type new-expr effects))))
 
 
 (define (create-effects-constructor arg-names arg-types effects)
-  ; TODO: best way of doing this...?
   (if (n:= (length arg-names) (length arg-types))
       (lambda inputs
         (let ((type-mapping (map cons arg-types (map texpr-type inputs)))
               (name-mapping (map cons arg-names (map texpr-expr inputs))))
-          (write-line "type mapping")
-          (write-line type-mapping)
-          (write-line arg-types)
           (if (n:= (length inputs) (length type-mapping))
               (construct-effects type-mapping name-mapping effects)
               (error "call to user-defined function has incorrect numbere of arguments"))))
@@ -214,10 +228,6 @@
   (match-args effect:io? list? list?)
   (lambda (effect tmap nmap)
     ; io just reports types
-    (write-line "io handler")
-    (write-line (cdr effect))
-    (write-line tmap)
-    (write-line "done")
     (effect:io (replace-mapping (cdr effect) tmap))))
 
 (define (replace-mapping l m)
@@ -244,6 +254,78 @@
   (cons (car location) (replace-mapping (cdr location) nmap)))
 
 
+
+(define (simplify-effectful-program eprog)
+  (simplify-effectful-program-1 (effectful:get-type eprog)
+                                (effectful:get-expr eprog)
+                                (effectful:get-effects eprog)))
+
+(define simplify-effectful-program-1
+  (simple-generic-procedure 'simplify-effectful-program-1 3 #f))
+
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args type-expression?
+              (disjoin boolean? number? symbol?)
+              list?)
+  ; TODO: should symbols be included here???
+  (lambda (type expr effects)
+    expr))
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args type-expression? if-expr? list?)
+  (lambda (type expr effects)
+    ; TODO: how should we annotate effects???
+    (declare (ignore type))
+    (declare (ignore effects))
+    (make-if-expr
+     (simplify-effectful-program (if-predicate expr))
+     (simplify-effectful-program (if-consequent expr))
+     (simplify-effectful-program (if-alternative expr)))))
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args procedure-type? lambda-expr? list?)
+  (lambda (type expr effects)
+    `(lambda ,(lambda-bvl expr)
+       ,@(map declare-type-expr
+              (lambda-bvl expr)
+              (procedure-type-domains type))
+       ; TODO: need effect declarations
+       AJ NEEDS TO IMPLEMENT THIS
+       ,@(splice-begin
+          (simplify-effectful-program (lambda-body expr))))))
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args type-expression? combination-expr? list?)
+  (lambda (type expr effects)
+    ; TODO: should effects be displayed here? it's difficult to say...
+    (make-combination-expr
+     (simplify-effectful-program (combination-operator expr))
+     (map simplify-effectful-program (combination-operands expr)))))
+
+(define (declare-effects effects)
+  (list 'declare-effects effects))
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args type-expression? define-expr? list?)
+  (lambda (type expr effects)
+    ; TODO: how should effects be displayed for define stmts...?
+    (make-begin-expr
+     (list
+      (make-define-expr (define-name expr)
+                        (simplify-effectful-program (define-value expr)))
+      (declare-type-expr (define-name expr)
+                         (texpr-type (define-value expr)))
+      (declare-effects effects)))))
+
+(define-generic-procedure-handler simplify-effectful-program-1
+  (match-args type-expression? begin-expr? list?)
+  (lambda (type expr effects)
+    ; TODO: also how do we declare effects for begins...
+    (make-begin-expr
+     (append-map (lambda (x)
+                   (splice-begin (simplify-effectful-program x)))
+                 (begin-exprs expr)))))
 
 
 
