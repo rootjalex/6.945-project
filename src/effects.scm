@@ -105,12 +105,6 @@ bf81c].
   (set! effect:unknown constructor)
   (set! effect:unknown? predicate))
 
-(define (make-default-effect . args)
-  (declare (ignore args))
-  ; TODO: are args important for unknown? I think it would just be var name.
-  (effect:unknown))
-
-
 (define (strip-pure effects)
   (delete! (effect:pure) effects))
 

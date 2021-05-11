@@ -27,6 +27,7 @@ Different from the original in that side-effects are also annotated.
 (define-generic-procedure-handler et-annotate-expr
   (match-args symbol? any-object? any-object?)
   (lambda (expr env senv)
+    (write-line expr)
     (let* ((type (get-var-type expr env))
            (effect (get-var-effect expr senv))
            (ctor (effect:get-ctor effect))
@@ -62,9 +63,10 @@ Different from the original in that side-effects are also annotated.
 (define-generic-procedure-handler et-annotate-expr
   (match-args lambda-expr? any-object? any-object?)
   (lambda (expr env senv)
-    (let ((env* (new-frame (lambda-bvl expr) env)))
+    (let ((env* (new-frame (lambda-bvl expr) env))
+          (senv* (new-effect-frame (lambda-bvl expr) senv)))
       (let ((arg-types (map (lambda (name) (get-var-type name env*)) (lambda-bvl expr)))
-            (annotated-body (et-annotate-expr (lambda-body expr) env* senv)))
+            (annotated-body (et-annotate-expr (lambda-body expr) env* senv*)))
         (let ((proc-type (procedure-type arg-types (type-variable)))
               (proc-expr (make-lambda-expr (lambda-bvl expr) annotated-body))
               (proc-effect (etexpr-effects annotated-body)))

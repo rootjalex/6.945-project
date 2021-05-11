@@ -23,8 +23,17 @@ Some useful helper functions that we've needed.
 
 ; unclear where these should go.
 
+(define (make-default-effect-cell name)
+  (list name (lambda () (effect:unknown)) disclude-args))
+
 (define (get-var-effect name env)
-  (get-from-env name env make-default-effect))
+  (get-from-env name env make-default-effect-cell))
+
+(define (make-pure-cell name)
+  (list name effect:simple-pure disclude-args))
+
+(define (new-effect-frame names env)
+  (cons (map make-pure-cell names) env))
 
 ;;;; Effectful typed expressions
 

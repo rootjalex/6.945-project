@@ -87,4 +87,4 @@ TODO: define built-in operations and associated wrappers here. Expand from what 
   (car effect))
 
 ; TODO: does this even work???
-(register-primitive-effect! 'write-line (lambda (type) (list (effect:write type))) no-op)
+(register-primitive-effect! 'write-line (lambda (types) (list (apply effect:io types))) no-op)
