@@ -548,6 +548,27 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 ; Hmm, this is bad, Gerry was right...
 |#
 
+(define write-example
+  '(define prog
+     (lambda (l)
+       (write-line l))))
+
+#|
+(define write-texpr (annotate-program write-example))
+;Value: write-texpr
+
+(pp (effect-annotate-program write-texpr))
+(effectful
+ (? prog:379)
+ (define prog
+   (effectful
+    (type:procedure ((? l:380)) (? type:383))
+    (lambda (l)
+      (effectful (? type:382) ((effectful (? write-line:381) write-line ()) (effectful (? l:380) l ())) (effect:io ((? l:380)))))
+    (effect:io ((? l:380)))))
+ (effect:io ((? l:380))))
+;Unspecified return value
+|#
 
 #|
 TODOs:
