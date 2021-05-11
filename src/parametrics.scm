@@ -106,6 +106,12 @@ where DUPLICATE B B' is:
 
 ; TODO: NEED TO HANDLE REGULAR, NON-PROCEDURAL PARAMETRIC TYPES!!!
 
+(define-generic-procedure-handler gather-parametric-types
+  (match-args pair-type?)
+  (lambda (type)
+    (append (gather-parametric-types (cadr type))
+            (gather-parametric-types (caddr type)))))
+
 (define (gather-single-types constraint)
   (append (gather-parametric-types (constraint-lhs constraint))
           (gather-parametric-types (constraint-rhs constraint))))
@@ -196,6 +202,12 @@ where DUPLICATE B B' is:
   (lambda (type mapping)
     (procedure-type (map (lambda (t) (substitute-types t mapping)) (procedure-type-domains type))
                     (substitute-types (procedure-type-codomain type) mapping))))
+
+(define-generic-procedure-handler substitute-types
+  (match-args pair-type? alist?)
+  (lambda (type mapping)
+    (pair-type (substitute-types (cadr type) mapping)
+               (substitute-types (caddr type) mapping))))
 
 ; TODO: NEED TO HANDLE REGULAR, NON-PROCEDURAL PARAMETRIC TYPES!!!
 

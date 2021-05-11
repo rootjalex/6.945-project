@@ -504,6 +504,51 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 ;Unspecified return value
 |#
 
+
+(define double-effect-example
+  '(begin
+     (define foo
+       (lambda (x y)
+         (begin
+           (set-cdr! x 4)
+           (write-line y))))
+
+     (define z (list 1 2 3))
+
+     (foo z 4)))
+
+
+
+
+
+(define gerry-program
+  '(define list-ref
+     (lambda (lst n)
+       (if (= n 0)
+           (car lst)
+           (list-ref (cdr lst) (- n 1))))))
+
+(pp (simplify-annotated-program (infer-program-types gerry-program)))
+#|
+(begin
+ (define list-ref
+   (lambda (lst n)
+     (declare-type lst (type:pair (? type:358) (type:pair (? type:358) (? type:356))))
+     (declare-type n (numeric-type))
+     (if (= n 0)
+         (car lst)
+         (list-ref (cdr lst) (- n 1)))))
+ (declare-type
+  list-ref
+  (type:procedure
+   ((type:pair (? type:358) (type:pair (? type:358) (? type:356))) (numeric-type))
+   (? type:358))))
+;Unspecified return value
+
+; Hmm, this is bad, Gerry was right...
+|#
+
+
 #|
 TODOs:
 Operations file: AJ
