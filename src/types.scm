@@ -39,3 +39,6 @@ TODO: define built-in types and associated wrappers here. Expand from what exist
   (set! vector-type constructor)
   (set! vector-type? predicate))
 
+; We now make procedure-types have side-effects
+(define (procedure-type-effects expr)
+  (caddr (parametric-type-operands expr)))

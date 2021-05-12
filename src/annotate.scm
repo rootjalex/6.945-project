@@ -3,6 +3,75 @@ Annotation of expressions.
 Different from the original in that side-effects are also annotated. 
 |#
 
+
+; TODO: should this be the same environment? maybe not.
+(define (label-effects texpr)
+  (label-effects-expr texpr (top-level-env)))
+
+(define label-effects-expr
+  (simple-generic-procedure 'label-effects-expr 2 #f))
+
+(define (texpr-pred type?)
+  (lambda (texpr)
+    (and (texpr? texpr)
+         (type? (texpr-type texpr)))))
+
+(define boolean-texpr? (texpr-pred boolean-type?))
+
+#|
+(boolean-texpr? (annotate-program '#t))
+;Value: #t
+|#
+
+(define numeric-texpr? (texpr-pred numeric-type?))
+
+#|
+(boolean-texpr? (annotate-program '6))
+;Value: #f
+
+(numeric-texpr? (annotate-program '6))
+;Value: #t
+|#
+
+(define procedure-texpr? (texpr-pred procedure-type?))
+
+(define variable-texpr? (texpr-pred type-variable?))
+
+(define (make-effect-wrapper texpr)
+  (list 'effect-wrapper texpr))
+
+(define (effect-wrapper? arg)
+  (and (list? arg)
+       (n:= 2 (length arg))
+       (eqv? (car arg) 'effect-wrapper)))
+
+
+(define-generic-procedure-handler label-effects-expr
+  (match-args boolean-texpr? any-object?)
+  (lambda (texpr env)
+    (declare (ignore env))
+    texpr))
+
+(define-generic-procedure-handler label-effects-expr
+  (match-args numeric-texpr? any-object?)
+  (lambda (texpr env)
+    (declare (ignore env))
+    texpr))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (define (et-annotate-program expr)
   (et-annotate-expr expr (top-level-env) (top-level-env-effects)))
 

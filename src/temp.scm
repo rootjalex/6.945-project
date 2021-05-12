@@ -517,7 +517,21 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 
      (foo z 4)))
 
-(define de-texpr (annotate-program de-texpr))
+
+#|
+(define de-texpr (annotate-program double-effect-example))
+;Value: de-texpr
+
+(define de-effectful (effect-annotate-program de-texpr))
+;Value: de-effectful
+
+
+
+|#
+
+
+
+(define de-texpr (annotate-program double-effect-example))
 
 (define ef-expr (effect-annotate-program de-texpr))
 #|
@@ -563,16 +577,12 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
                                 (effect:io ((numeric-type)))))
 ;Unspecified return value
 
-
-
-
-
-
-
-
 |#
+(define de-constraints (program-constraints de-texpr))
 
+(define de-dict (unify-constraints de-constraints))
 
+(define de-infer ((match:dict-substitution de-dict) ef-expr))
 
 
 (define gerry-program
