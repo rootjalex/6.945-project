@@ -271,7 +271,7 @@
   ; TODO: should symbols be included here???
   (lambda (type expr effects)
     expr))
-
+ 
 (define-generic-procedure-handler simplify-effectful-program-1
   (match-args type-expression? if-expr? list?)
   (lambda (type expr effects)
@@ -291,7 +291,7 @@
               (lambda-bvl expr)
               (procedure-type-domains type))
        ; TODO: need effect declarations
-       AJ NEEDS TO IMPLEMENT THIS
+      ;  ,@(map declare-effects effects)
        ,@(splice-begin
           (simplify-effectful-program (lambda-body expr))))))
 
@@ -299,9 +299,16 @@
   (match-args type-expression? combination-expr? list?)
   (lambda (type expr effects)
     ; TODO: should effects be displayed here? it's difficult to say...
-    (make-combination-expr
-     (simplify-effectful-program (combination-operator expr))
-     (map simplify-effectful-program (combination-operands expr)))))
+    ; ^ yes? since it's when the defined proc are used.. maybe have a check
+    ; for when type is of the top env and don't print if it is unless
+    ; we want effects for those 
+    (make-begin-expr
+      (list
+        (make-combination-expr
+          (simplify-effectful-program (combination-operator expr))
+          (map simplify-effectful-program (combination-operands expr)))
+        (declare-effects effects)))))
+
 
 (define (declare-effects effects)
   (list 'declare-effects effects))

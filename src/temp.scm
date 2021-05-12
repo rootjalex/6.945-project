@@ -517,9 +517,11 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 
      (foo z 4)))
 
-(define de-texpr (annotate-program de-texpr))
+(define de-texpr (annotate-program double-effect-example))
 
 (define ef-expr (effect-annotate-program de-texpr))
+
+(pp (simplify-effectful-program ef-expr))
 #|
 (pp ef-expr)
 (effectful
