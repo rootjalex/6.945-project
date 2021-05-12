@@ -517,73 +517,69 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 
      (foo z 4)))
 
-
 #|
-(define de-texpr (annotate-program double-effect-example))
-;Value: de-texpr
-
-(define de-effectful (effect-annotate-program de-texpr))
-;Value: de-effectful
-
-
-
-|#
-
-
-
-(define de-texpr (annotate-program double-effect-example))
-
-(define ef-expr (effect-annotate-program de-texpr))
-#|
-(pp ef-expr)
-(effectful
- (? type:14)
- (begin
-  (effectful
-   (? foo:1)
-   (define foo
-     (effectful
-      (type:procedure ((? x:2) (? y:3)) (? type:9))
-      (lambda (x y)
-        (effectful
-         (? type:8)
-         (begin
-          (effectful
-           (? type:5)
-           ((effectful (? set-cdr!:4) set-cdr! ()) (effectful (? x:2) x ()) (effectful (numeric-type) 4 ()))
-           ((effect:write (cdr-of x) (numeric-type))))
-          (effectful (? type:7)
-                     ((effectful (? write-line:6) write-line ()) (effectful (? y:3) y ()))
-                     ((effect:io (? y:3)))))
-         ((effect:write (cdr-of x) (numeric-type)) (effect:io (? y:3)))))
-      ((effect:write (cdr-of x) (numeric-type)) (effect:io (? y:3)))))
-   ((effect:allocate (type:procedure ((? x:2) (? y:3)) (? type:9)))))
-  (effectful
-   (? z:10)
-   (define z
-     (effectful
-      (? type:12)
-      ((effectful (? list:11) list ()) (effectful (numeric-type) 1 ())
-                                       (effectful (numeric-type) 2 ())
-                                       (effectful (numeric-type) 3 ()))
-      ((effect:unknown))))
-   ((effect:unknown) (effect:allocate (? type:12))))
-  (effectful (? type:13)
-             ((effectful (? foo:1) foo ()) (effectful (? z:10) z ()) (effectful (numeric-type) 4 ()))
-             ((effect:write (cdr-of z) (numeric-type)) (effect:io ((numeric-type))))))
- ((effect:allocate (? type:12)) (effect:unknown)
-                                (effect:allocate (type:procedure ((? x:2) (? y:3)) (? type:9)))
-                                (effect:write (cdr-of z) (numeric-type))
-                                (effect:io ((numeric-type)))))
+(pp (clean-infer-types-exprs double-effect-example))
+(begin
+ (define foo
+   (lambda (x y)
+     (declare-type x (? x:29))
+     (declare-type y (? y:30))
+     (declare-effects ((effect:write (cdr-of x) (numeric-type))))
+     (set-cdr! x 4)
+     (declare-effects ((effect:io (? y:30))))
+     (write-line y)))
+ (declare-type foo (type:procedure ((? x:29) (? y:30)) (? type:36)))
+ (declare-effects
+  ((effect:allocate (type:procedure ((? x:29) (? y:30)) (? type:36)))))
+ (define z
+   (begin (declare-effects ((effect:unknown))) (list 1 2 3)))
+ (declare-type z (? z:37))
+ (declare-effects ((effect:unknown) (effect:allocate (? z:37))))
+ (declare-effects
+  ((effect:write (cdr-of z) (numeric-type)) (effect:io ((numeric-type)))))
+ (foo z 4))
 ;Unspecified return value
-
 |#
-(define de-constraints (program-constraints de-texpr))
 
-(define de-dict (unify-constraints de-constraints))
+(define multiple-effects-example
+  '(begin
+     (define foo
+       (lambda (x y)
+         (begin
+           (set-cdr! x 4)
+           (write-line y))))
 
-(define de-infer ((match:dict-substitution de-dict) ef-expr))
+     (define z (list 1 2 3))
 
+     (foo z 4)
+
+     (foo z #t)))
+#|
+(pp (clean-infer-types-exprs multiple-effects-example))
+(begin
+ (define foo
+   (lambda (x y)
+     (declare-type x (? x:56))
+     (declare-type y (? y:57))
+     (declare-effects ((effect:write (cdr-of x) (numeric-type))))
+     (set-cdr! x 4)
+     (declare-effects ((effect:io (? y:57))))
+     (write-line y)))
+ (declare-type foo (type:procedure ((? x:56) (? y:57)) (? type:63)))
+ (declare-effects
+  ((effect:allocate (type:procedure ((? x:56) (? y:57)) (? type:63)))))
+ (define z
+   (begin (declare-effects ((effect:unknown))) (list 1 2 3)))
+ (declare-type z (? z:64))
+ (declare-effects ((effect:unknown) (effect:allocate (? z:64))))
+ (declare-effects
+  ((effect:write (cdr-of z) (numeric-type)) (effect:io ((numeric-type)))))
+ (foo z 4)
+ (declare-effects
+  ((effect:write (cdr-of z) (numeric-type)) (effect:io ((boolean-type)))))
+ (foo z #t))
+;Unspecified return value
+|#
 
 (define gerry-program
   '(define list-ref
@@ -631,6 +627,17 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
       (effectful (? type:382) ((effectful (? write-line:381) write-line ()) (effectful (? l:380) l ())) (effect:io ((? l:380)))))
     (effect:io ((? l:380)))))
  (effect:io ((? l:380))))
+;Unspecified return value
+|#
+
+(define silly-effect-example
+  '(+ 1 2))
+
+(pp (clean-infer-types-exprs silly-effect-example))
+#|
+(begin
+  (declare-effects ((effect:pure)))
+  (+ 1 2))
 ;Unspecified return value
 |#
 
