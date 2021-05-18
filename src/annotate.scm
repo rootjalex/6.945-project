@@ -1,180 +1,199 @@
 #|
-Annotation of expressions.
-Different from the original in that side-effects are also annotated. 
+Annotation of typed expressions with their side effects.
 |#
-
-
-; TODO: should this be the same environment? maybe not.
-(define (label-effects texpr)
-  (label-effects-expr texpr (top-level-env)))
-
-(define label-effects-expr
-  (simple-generic-procedure 'label-effects-expr 2 #f))
-
-(define (texpr-pred type?)
-  (lambda (texpr)
-    (and (texpr? texpr)
-         (type? (texpr-type texpr)))))
-
-(define boolean-texpr? (texpr-pred boolean-type?))
 
 #|
-(boolean-texpr? (annotate-program '#t))
-;Value: #t
+An effectful object is a typed expression with a set of effects (can be empty)
 |#
 
-(define numeric-texpr? (texpr-pred numeric-type?))
+(define (make-effectful type expr effects)
+  (list 'effectful type expr effects))
+
+(define (effectful? eff)
+  (and (list? eff)
+       (n:= 4 (length eff))
+       (eqv? 'effectful (car eff))))
+
+(define (effectful:get-effects effectful)
+  (cadddr effectful))
+
+(define (effectful:get-type effectful)
+  (cadr effectful))
+
+(define (effectful:get-expr effectful)
+  (caddr effectful))
+
+(define (effects:union e0 e1)
+  (lset-union equal? e0 e1))
+
+(define (effects:union* . args)
+  (reduce effects:union '() args))
+
 
 #|
-(boolean-texpr? (annotate-program '6))
-;Value: #f
-
-(numeric-texpr? (annotate-program '6))
-;Value: #t
+Actual annotation code
 |#
 
-(define procedure-texpr? (texpr-pred procedure-type?))
+(define (effect-annotate-partial texpr env)
+  (effect-annotate-expr (texpr-type texpr) (texpr-expr texpr) env))
 
-(define variable-texpr? (texpr-pred type-variable?))
+; this is the top-level thing we call
+(define (effect-annotate-program texpr)
+  (effect-annotate-partial texpr (top-level-env-effects)))
 
-(define (make-effect-wrapper texpr)
-  (list 'effect-wrapper texpr))
+(define effect-annotate-expr
+  (simple-generic-procedure 'effect-annotate-expr 3 #f))
 
-(define (effect-wrapper? arg)
-  (and (list? arg)
-       (n:= 2 (length arg))
-       (eqv? (car arg) 'effect-wrapper)))
-
-
-(define-generic-procedure-handler label-effects-expr
-  (match-args boolean-texpr? any-object?)
-  (lambda (texpr env)
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? (disjoin boolean? number? symbol?) any-object?)
+  (lambda (type expr env)
     (declare (ignore env))
-    texpr))
+    ; this is not exactly true for symbol, but the combination-expr has a special handler for that.
+    (make-effectful type expr '())))
 
-(define-generic-procedure-handler label-effects-expr
-  (match-args numeric-texpr? any-object?)
-  (lambda (texpr env)
-    (declare (ignore env))
-    texpr))
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? if-expr? any-object?)
+  (lambda (type expr env)
+    (let ((annotated-pred (effect-annotate-partial (if-predicate expr) env))
+          (annotated-cons (effect-annotate-partial (if-consequent expr) env))
+          (annotated-altn (effect-annotate-partial (if-alternative expr) env)))
+      (let* ((pred-effect (effectful:get-effects annotated-pred))
+             (cons-effect (effectful:get-effects annotated-pred))
+             (altn-effect (effectful:get-effects annotatedd-altn))
+             (effects (effects:union* cons-effect altn-effect pred-effect)))
+        (make-effectful type (make-if-expr annotated-pred annotated-cons annotated-altn) effects)))))
 
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? lambda-expr? any-object?)
+  (lambda (type expr env)
+    (let* ((env* (add-effect-frame (lambda-bvl expr) env))
+           (body (effect-annotate-partial (lambda-body expr) env*)))
+      ; Should this be a closure allocation? We can't exactly know if that's true or not.
+      (make-effectful type (make-lambda-expr (lambda-bvl expr) body) (effectful:get-effects body)))))
 
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? combination-expr? any-object?)
+  (lambda (type expr env)
+    (let* ((operator (combination-operator expr))
+           (eval-op (effect-annotate-partial operator env))
+           (effects-ctor (if (symbol? (texpr-expr operator))
+                             (get-var-effect (texpr-expr operator) env)
+                             ; TODO: this doesn't work for non-symbols I think? that's bad.
+                             (error "We don't support non-symbol operators for combination expressions yet")))
+           (operands (map (lambda (op) (effect-annotate-partial op env)) (combination-operands expr))))
+      ; TODO: It could be more complicated than this, but for now, we act like it's simple.
+      (make-effectful type (make-combination-expr eval-op operands) (apply effects-ctor (combination-operands expr))))))
 
+#|
+Definitions can be very complciated, so we need a few helper functions here.
+|#
+(define (lambda-texpr? texpr)
+  (and (texpr? texpr)
+       (lambda-expr? (texpr-expr texpr))))
 
+(define (handle-lambda-definition name lambda-texpr lambda-effectful env)
+  (let* ((lambda-expr (texpr-expr lambda-texpr))
+         (lambda-type (texpr-type lambda-texpr))
+         (lambda-args (lambda-bvl lambda-expr))
+         (lambda-targs (procedure-type-domains lambda-type))
+         (lambda-effects (effectful:get-effects lambda-effectful))
+         (effects-ctor (create-effects-constructor lambda-args lambda-targs lambda-effects)))
+    (insert-effects-ctor! name effects-ctor env)))
 
+(define (construct-effect:allocate type)
+  (list (effect:allocate type)))
 
+(define (construct-effectful-define type expr body)
+  (let ((define-expr (make-define-expr (define-name expr) body))
+        (allocator (construct-effect:allocate (texpr-type (define-value expr)))))
+    (if (lambda-texpr? (define-value expr))
+        (make-effectful type define-expr allocator)
+        (make-effectful type define-expr (effects:union allocator (effectful:get-effects body))))))
 
+#|
+Each type of effect must have some method for filling it:
+|#
+(define (create-effects-constructor arg-names arg-types effects)
+  (if (n:= (length arg-names) (length arg-types))
+      (lambda inputs
+        (let ((type-mapping (map cons arg-types (map texpr-type inputs)))
+              (name-mapping (map cons arg-names (map texpr-expr inputs))))
+          (if (n:= (length inputs) (length type-mapping))
+              (construct-effects type-mapping name-mapping effects)
+              (error "call to user-defined function has incorrect numbere of arguments"))))
+      (error "create-effects-constructor received bad arguments" arg-names arg-types effects)))
 
+(define (construct-effects tmap nmap effects)
+  (let ((replacer (lambda (e) (construct-effect-replacement e tmap nmap))))
+    (map replacer effects)))
 
+(define construct-effect-replacement
+  (simple-generic-procedure 'construct-effect-replacment 3 #f))
 
+(define-generic-procedure-handler construct-effect-replacement
+  (match-args effect:unknown? list? list?)
+  (lambda (effect tmap nmap)
+    effect))
 
+(define-generic-procedure-handler construct-effect-replacement
+  (match-args effect:pure? list? list?)
+  (lambda (effect tmap nmap)
+    effect))
 
+(define-generic-procedure-handler construct-effect-replacement
+  (match-args effect:io? list? list?)
+  (lambda (effect tmap nmap)
+    ; io just reports types
+    (effect:io (replace-mapping (cdr effect) tmap))))
 
+(define (replace-mapping l m)
+  (let ((replacer
+         (lambda (elem)
+           (let ((found (assoc elem m)))
+             (if found
+                 (cdr found)
+                 elem)))))
+    (map replacer l)))
 
+(define-generic-procedure-handler construct-effect-replacement
+  (match-args effect:write? list? list?)
+  (lambda (effect tmap nmap)
+    ; write is of the form (effect:write (location) (type))
+    ; where location is (name place)
+    ; only placee and type should be modified, if possible
+    (effect:write (replace-location (cadr effect) nmap)
+                  (car (replace-mapping (cddr effect) tmap)))))
 
-(define (et-annotate-program expr)
-  (et-annotate-expr expr (top-level-env) (top-level-env-effects)))
+(define (replace-location location nmap)
+  ; location is of the form (identifier place)
+  ; we can only replace place
+  (cons (car location) (replace-mapping (cdr location) nmap)))
 
-; The third argument is the side-effects environment.
-(define et-annotate-expr
-  (simple-generic-procedure 'et-annotate-expr 3 #f))
+#|
+Now back to annotations:
+|#
 
-(define-generic-procedure-handler et-annotate-expr
-  (match-args boolean? any-object? any-object?)
-  (lambda (expr env senv)
-    (declare (ignore env))
-    (declare (ignore senv))
-    (make-pure-etexpr (boolean-type) expr)))
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? define-expr? any-object?)
+  (lambda (type expr env)
+    (let ((body (effect-annotate-partial (define-value expr) env)))
+      (if (lambda-texpr? (define-value expr))
+          (handle-lambda-definition (define-name expr) (define-value expr) body env))
+      (construct-effectful-define type expr body))))
 
-(define-generic-procedure-handler et-annotate-expr
-  (match-args number? any-object? any-object?)
-  (lambda (expr env senv)
-    (declare (ignore env))
-    (declare (ignore senv))
-    (make-pure-etexpr (numeric-type) expr)))
+; this is map but sequential
+(define (gather f l)
+  (if (null? l)
+      l
+      (let* ((first (f (car l)))
+             (rest (gather f (cdr l))))
+        (cons first rest))))
 
-(define-generic-procedure-handler et-annotate-expr
-  (match-args symbol? any-object? any-object?)
-  (lambda (expr env senv)
-    (write-line expr)
-    (let* ((type (get-var-type expr env))
-           (effect (get-var-effect expr senv))
-           (ctor (effect:get-ctor effect))
-           (processing (effect:get-processing effect))
-           (final-effects (apply ctor (processing (list type)))))
-      (make-effectful-etexpr type expr final-effects))))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args string? any-object?)
-  (lambda (expr env senv)
-    (declare (ignore env))
-    (declare (ignore senv))
-    (make-pure-etexpr (string-type) expr)))
-
-; TODO: need to make `effect:union` and `effect:disjoint`
-(define (make-if-effects predicate consequent alternative)
-  (effect:union predicate (effect:disjoint consequent alternative)))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args if-expr? any-object? any-object?)
-  (lambda (expr env senv)
-    (let ((predicate (et-annotate-expr (if-predicate expr) env senv))
-          (consequent (et-annotate-expr (if-consequent expr) env senv))
-          (alternative (et-annotate-expr (if-alternative expr) env senv)))
-      (let ((pred-effect (etexpr-effects predicate))
-            (cons-effect (etexpr-effects consequent))
-            (alt-effect (etexpr-effects alternative)))
-        (make-effectful-etexpr
-         (type-variable)
-         (make-if-expr predicate consequent alternative)
-         (make-if-effects pred-effect cons-effect alt-effect))))))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args lambda-expr? any-object? any-object?)
-  (lambda (expr env senv)
-    (let ((env* (new-frame (lambda-bvl expr) env))
-          (senv* (new-effect-frame (lambda-bvl expr) senv)))
-      (let ((arg-types (map (lambda (name) (get-var-type name env*)) (lambda-bvl expr)))
-            (annotated-body (et-annotate-expr (lambda-body expr) env* senv*)))
-        (let ((proc-type (procedure-type arg-types (type-variable)))
-              (proc-expr (make-lambda-expr (lambda-bvl expr) annotated-body))
-              (proc-effect (etexpr-effects annotated-body)))
-          ; TODO: Does this repeat effects....?
-          (make-effectful-etexpr proc-type proc-expr proc-effect))))))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args combination-expr? any-object? any-object?)
-  (lambda (expr env senv)
-    (let* ((operator-name (combination-operator expr))
-           (effect (get-var-effect operator-name senv))
-           (type (type-variable))
-           (et-operands (map (lambda (operand) (et-annotate-expr operand env senv)) (combination-operands expr)))
-           (comb-expr (make-combination-expr (et-annotate-expr operator-name env senv) et-operands))
-           (operand-types (map etexpr-type et-operands))
-           (final-effects (apply (effect:get-ctor effect) ((effect:get-processing effect) operand-types)))
-           (effects (effect:union* (cons final-effects (map etexpr-effects et-operands)))))
-      (make-effectful-etexpr type comb-expr effects))))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args define-expr? any-object? any-object?)
-  (lambda (expr env senv)
-    (let* ((name (define-name expr))
-           (type (define-var-type name env))
-           (effects (list (effect:allocate type)))
-           ; TODO: need to add effects to senv, for recursive calls
-           (expr (make-define-expr name (et-annotate-expr (define-value expr) env senv))))
-      (make-effectful-etexpr type expr effects))))
-
-(define-generic-procedure-handler et-annotate-expr
-  (match-args begin-expr? any-object? any-object?)
-  (lambda (expr env senv)
-    (let* ((type (type-variable))
-           ; TODO: does senv change at all here....?
-           (parts (map (lambda (subexpr) (et-annotate-expr subexpr env senv)) (begin-exprs expr)))
-           (effects (effect:union* (map etexpr-effects parts)))
-           (lambda-expr (make-begin-expr parts)))
-      (make-effectful-etexpr type lambda-expr effects))))
-
-
-
-
+(define-generic-procedure-handler effect-annotate-expr
+  (match-args type-expression? begin-expr? any-object?)
+  (lambda (type expr env)
+    ; TODO: is there a way to force the map to be sequential..?
+    (let* ((body (gather (lambda (texpr) (effect-annotate-partial texpr env)) (begin-exprs expr)))
+           (new-expr (make-begin-expr body))
+           (effects (apply effects:union* (map effectful:get-effects body))))
+      (make-effectful type new-expr effects))))

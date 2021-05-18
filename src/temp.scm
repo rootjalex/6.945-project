@@ -518,7 +518,7 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
      (foo z 4)))
 
 #|
-(pp (clean-infer-types-exprs double-effect-example))
+(pp (clean-infer-types-effects double-effect-example))
 (begin
  (define foo
    (lambda (x y)
@@ -548,14 +548,11 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
          (begin
            (set-cdr! x 4)
            (write-line y))))
-
      (define z (list 1 2 3))
-
      (foo z 4)
-
      (foo z #t)))
 #|
-(pp (clean-infer-types-exprs multiple-effects-example))
+(pp (clean-infer-types-effects multiple-effects-example))
 (begin
  (define foo
    (lambda (x y)
@@ -630,16 +627,23 @@ umeric-type) 3))))) (t (boolean-type) (define em (t (boolean-type) ((t (type:pro
 ;Unspecified return value
 |#
 
-(define silly-effect-example
+(define add-example
   '(+ 1 2))
 
-(pp (clean-infer-types-exprs silly-effect-example))
+(pp (clean-infer-types-effects silly-effect-example))
 #|
 (begin
   (declare-effects ((effect:pure)))
   (+ 1 2))
 ;Unspecified return value
 |#
+
+(define example
+  '(begin
+     (define foo
+       (lambda (x)
+         (set-cdr! x 4)))
+     (foo (list 1 2 3))))
 
 #|
 TODOs:

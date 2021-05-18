@@ -21,39 +21,22 @@ Some useful helper functions that we've needed.
   (guarantee procedure? t)
   (t))
 
-; unclear where these should go.
+#|
+Corresponding versions for effects in an effectful env
+|#
 
 (define (make-default-effect-cell name)
-  (list name (lambda () (effect:unknown)) disclude-args))
+  (cons name
+        (lambda args
+          (declare (ignore args))
+          (list (effect:unknown)))))
 
 (define (get-var-effect name env)
   (get-from-env name env make-default-effect-cell))
 
-(define (make-pure-cell name)
-  (list name effect:simple-pure disclude-args))
+(define (add-effect-frame names env)
+  (cons (map make-default-effect-cell names) env))
 
-(define (new-effect-frame names env)
-  (cons (map make-pure-cell names) env))
-
-;;;; Effectful typed expressions
-
-(define (make-pure-etexpr type expr)
-  `(et ,type ,expr ,(list (effect:pure))))
-
-(define (make-effectful-etexpr type expr effects)
-  `(et ,type ,expr ,effects))
-
-(define (etexpr? object)
-  (and (list? object)
-       (= (length object) 4)
-       (eq? (car object) 'et)
-       (type-expression? (cadr object))))
-
-(define (etexpr-type expr)
-  (cadr expr))
-
-(define (etexpr-expr expr)
-  (caddr expr))
-
-(define (etexpr-effects expr)
-  (cadddr expr))
+(define (insert-effects-ctor! name ctor env)
+  (let ((cell (cons name ctor)))
+    (set-car! env (cons cell (car env)))))

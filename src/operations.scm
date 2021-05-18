@@ -34,6 +34,14 @@ TODO: define built-in operations and associated wrappers here. Expand from what 
     (procedure-type (list (pair-type car-type cdr-type)) cdr-type)))
 (register-primitive-op! 'cdr evaluate-cdr)
 
+(define (evaluate-set-cdr!)
+  (let ((car-type (type-variable 'car))
+        (cdr-type (type-variable 'cdr))
+        (cdr-type-new (type-variable 'cdr))
+        (undef-type (type-variable 'undefined)))
+    (procedure-type (list (pair-type car-type cdr-type) cdr-type-new) undef-type)))
+(register-primitive-op! 'set-cdr! evaluate-set-cdr!)
+
 (define (evaluate-car)
   (let ((car-type (type-variable 'car))
         (cdr-type (type-variable 'cdr)))
