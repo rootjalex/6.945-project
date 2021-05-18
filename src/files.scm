@@ -1,10 +1,7 @@
-; (define-load-spec type-inference
-;   "types"
-;   "operations"
-;   "effects"
-;   "helpers")
-
-(load "types")
-(load "effects")
-(load "operations")
 (load "helpers")
+(load "types")
+(load "operations")
+(load "effects")
+(load "parametrics")
+(load "annotate")
+(load "simplify")
