@@ -37,4 +37,5 @@ See [examples.scm](src/examples.scm) for our set of illustrative tests. We show 
        (define em (begin (declare-effects ()) (id #t #f)))
        (declare-type em (boolean-type))
        (declare-effects ((effect:allocate (boolean-type)))))
+;Unspecified return value
 ```
