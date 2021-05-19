@@ -209,8 +209,6 @@ where DUPLICATE B B' is:
     (pair-type (substitute-types (cadr type) mapping)
                (substitute-types (caddr type) mapping))))
 
-; TODO: NEED TO HANDLE REGULAR, NON-PROCEDURAL PARAMETRIC TYPES!!!
-
 (define-generic-procedure-handler program-constraints-1
   (match-args type-expression? combination-expr?)
   (lambda (type expr)
